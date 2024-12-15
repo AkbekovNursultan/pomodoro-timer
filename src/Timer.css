@@ -1,0 +1,29 @@
+/* Ensures the entire viewport is filled and everything is centered */
+body{
+  height: 100%;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.timer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.timer-tomato {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background-color: red;
+  color: white;
+  font-size: 36px;
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  text-align: center;
+}
