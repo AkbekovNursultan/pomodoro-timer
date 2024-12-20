@@ -4,8 +4,8 @@ import finishSound from './assets/victory.mp3';
 import breakEndSound from './assets/beep.mp3';
 
 const Timer = () => {
-  const initialTime = { hours: 0, minutes: 10, seconds: 0 };
-  const initialBreakTime = { hours: 0, minutes: 5, seconds: 0 };
+  const initialTime = { hours: 0, minutes: 0, seconds: 1 };
+  const initialBreakTime = { hours: 0, minutes: 0, seconds: 3 };
   const [editableTime, setEditableTime] = useState(initialTime);
   const [editableBreakTime, setEditableBreakTime] = useState(initialBreakTime);
   const [currentTime, setCurrentTime] = useState(initialTime);
@@ -17,74 +17,77 @@ const Timer = () => {
 
   const startTimer = () => {
     if (!isRunning) {
-      setCurrentTime(editableTime);
+        setCurrentTime(editableTime);
 
-      intervalIdRef.current = setInterval(() => {
-        setCurrentTime((prevTime) => {
-          let { hours, minutes, seconds } = prevTime;
+        intervalIdRef.current = setInterval(() => {
+            setCurrentTime((prevTime) => {
+                let { hours, minutes, seconds } = prevTime;
 
-          if (seconds === 0) {
-            if (minutes === 0) {
-              if (hours === 0) {
-                clearInterval(intervalIdRef.current);
-                setIsRunning(false);
-                finishAudio.play();
-                startBreak();
-                return { ...prevTime };
-              } else {
-                hours -= 1;
-                minutes = 59;
-              }
-            } else {
-              minutes -= 1;
-            }
-            seconds = 59;
-          } else {
-            seconds -= 1;
-          }
+                if (seconds === 0) {
+                    if (minutes === 0) {
+                        if (hours === 0) {
+                            clearInterval(intervalIdRef.current);
+                            setIsRunning(false);
+                            finishAudio.play();
+                            startBreak();
+                            return { ...prevTime };
+                        } else {
+                            hours -= 1;
+                            minutes = 59;
+                        }
+                    } else {
+                        minutes -= 1;
+                    }
+                    seconds = 59;
+                } else {
+                    seconds -= 1;
+                }
 
-          return { hours, minutes, seconds };
-        });
-      }, 1000);
-
-      setIsRunning(true);
+                return { hours, minutes, seconds };
+            });
+        }, 1000);
+        setIsRunning(true);
     }
-  };
+    saveSessionData();
+};
 
-  const startBreak = () => {
-    setIsBreakTime(true);
-    setCurrentTime(editableBreakTime);
 
-    intervalIdRef.current = setInterval(() => {
-      setCurrentTime((prevTime) => {
-        let { hours, minutes, seconds } = prevTime;
+const startBreak = () => {
+    if (!isBreakTime) {
+        setIsBreakTime(true);
+        setCurrentTime(editableBreakTime);
 
-        if (seconds === 0) {
-          if (minutes === 0) {
-            if (hours === 0) {
-              clearInterval(intervalIdRef.current);
-              setIsRunning(false);
-              breakEndAudio.play();
-              setIsBreakTime(false);
-              return { ...prevTime };
-            } else {
-              hours -= 1;
-              minutes = 59;
-            }
-          } else {
-            minutes -= 1;
-          }
-          seconds = 59;
-        } else {
-          seconds -= 1;
-        }
+        intervalIdRef.current = setInterval(() => {
+            setCurrentTime((prevTime) => {
+                let { hours, minutes, seconds } = prevTime;
 
-        return { hours, minutes, seconds };
-      });
-    }, 1000);
+                if (seconds === 0) {
+                    if (minutes === 0) {
+                        if (hours === 0) {
+                            clearInterval(intervalIdRef.current);
+                            setIsRunning(false);
+                            breakEndAudio.play();
+                            setIsBreakTime(false);
+                            return { ...prevTime };
+                        } else {
+                            hours -= 1;
+                            minutes = 59;
+                        }
+                    } else {
+                        minutes -= 1;
+                    }
+                    seconds = 59;
+                } else {
+                    seconds -= 1;
+                }
 
-    setIsRunning(true);
-  };
+                return { hours, minutes, seconds };
+            });
+        }, 1000);
+        setIsRunning(true);
+    }
+};
+
 
   const resetTimer = () => {
     clearInterval(intervalIdRef.current);
@@ -111,9 +114,50 @@ const Timer = () => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+const saveSessionData = async () => {
+  const workTimeFormatted = formatTime(editableTime.hours, editableTime.minutes, editableTime.seconds);
+  const breakTimeFormatted = formatTime(editableBreakTime.hours, editableBreakTime.minutes, editableBreakTime.seconds);
+
+  console.log('Sending workTime:', workTimeFormatted);
+  console.log('Sending breakTime:', breakTimeFormatted);
+
+  try {
+    const response = await fetch('http://localhost:5172/api/save-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        "work_time": workTimeFormatted,
+        "break_time": breakTimeFormatted
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Failed to save session:', errorData.message);
+      return;
+    }
+
+    const data = await response.json();
+    console.log('Session saved:', data.record);
+  } catch (error) {
+    console.error('Error sending session data to server:', error);
+  }
+  };
+
+
+
+
   return (
     <div className="timer-container">
-      <div className="timer-tomato">
+      {isBreakTime && (
+        <div className="break-notice">
+          <h2>Break Time</h2>
+        </div>
+      )}
+
+      <div className={`timer-tomato ${isBreakTime ? 'break' : ''}`}>
         <p className="timer-text">{formatTime(currentTime.hours, currentTime.minutes, currentTime.seconds)}</p>
       </div>
 
@@ -126,6 +170,7 @@ const Timer = () => {
         </button>
       </div>
 
+      {/* Work Time Editors */}
       <div className="time-input-container">
         <label htmlFor="hours-select">Work Time (Hours):</label>
         <select
@@ -170,6 +215,7 @@ const Timer = () => {
         </select>
       </div>
 
+      {/* Break Time Editors */}
       <div className="time-input-container">
         <label htmlFor="break-hours-select">Break Time (Hours):</label>
         <select
