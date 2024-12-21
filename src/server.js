@@ -39,7 +39,7 @@ app.post('/api/save-session', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
+app.get('/hello', (req, res) => {
   res.send('Hello from the server!');
 });
 
